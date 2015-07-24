@@ -13,8 +13,8 @@ public class VCFDataStore {
 	
 	//private Map<String, String[]> primaryMap = new HashMap<String, String[]>();
 	//private Map<String, String[]> secondaryMap = new HashMap<String, String[]>();
-	private Map<String, String> primaryMap = new HashMap<String, String>();
-	private Map<String, String> secondaryMap = new HashMap<String, String>();
+	private Map<String, Map<String, String>> primaryMap = new HashMap<String, Map<String, String>>();
+	private Map<String, Map<String, String>> secondaryMap = new HashMap<String, Map<String, String>>();
 	private Map<String, Integer> header = new HashMap<String, Integer>();
 
 	public VCFDataStore(String vcfFile)
@@ -45,10 +45,10 @@ public class VCFDataStore {
 				String id = reader.get("ID");
 				if (id != "." && id != "")
 				{
-					primaryMap.put(id, reader.get("INFO"));
+					primaryMap.put(id, parseInfo(reader.get("INFO")));
 				}
 				String secondaryID = reader.get("CHROM") + ":" + reader.get("POS") + ":" + reader.get("REF") + ":" + reader.get("ALT");
-				secondaryMap.put(secondaryID, reader.get("INFO"));
+				secondaryMap.put(secondaryID, parseInfo(reader.get("INFO")));
 			}
 			
 			reader.close();
@@ -60,30 +60,51 @@ public class VCFDataStore {
 		}
 	}
 	
-	public Map<String, String> getPrimaryMap()
+	private Map<String, String> parseInfo(String info)
 	{
-		return primaryMap;
+		Map<String, String> m = new HashMap<String, String>();
+		String[] attributes = info.split(";");
+		for (String a : attributes)
+		{
+			String[] kvPair = a.split("=");
+			if (kvPair.length == 2)
+			{
+				m.put(kvPair[0], kvPair[1]);
+			}
+		}
+		return m;
 	}
 	
-	public Map<String, String> getSecondaryMap()
+	public Map<String, String> firstLookup(String id)
 	{
-		return secondaryMap;
+		if (primaryMap.containsKey(id))
+		{
+			return primaryMap.get(id);
+		} else {
+			return null;
+		}
 	}
+	
+	public Map<String, String> secondaryLookup(String mapId)
+	{
+		if (secondaryMap.containsKey(mapId))
+		{
+			return secondaryMap.get(mapId);
+		} else {
+			return null;
+		}
+	}
+	
 
 	public static void main( String[] args )
 	{
 		VCFDataStore j = new VCFDataStore("c:/Users/sjin1/Downloads/jackyfiles/jackyfiles/WGC033595U_combined_snps_annovar.hg19_multianno.vcf");
 		
 		System.out.println("primary map");
-		for (Map.Entry<String, String> entry : j.getPrimaryMap().entrySet())
+		for (Map.Entry<String, String> entry : j.firstLookup("rs75062661").entrySet())
 		{
 			System.out.println(entry.getKey() + "::" + entry.getValue());
 		}
 		
-		System.out.println("secondary map");
-		for (Map.Entry<String, String> entry : j.getSecondaryMap().entrySet())
-		{
-			System.out.println(entry.getKey() + "::" + entry.getValue());
-		}
 	}
 }
